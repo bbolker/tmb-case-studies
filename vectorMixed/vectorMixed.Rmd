@@ -1,0 +1,42 @@
+---
+title: "linear mixed model with vector-valued random effects"
+---
+
+```{r echo=FALSE, eval=TRUE, results='hide',include=FALSE}
+library(TMB)
+source("../utils.R")
+source("vectorMixed.R")
+```
+
+
+```{r}
+library(lme4)
+library(glmmTMB)
+
+## fit basic model 
+m1 <- lmer(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE)
+glmmtmb1 <- glmmTMB(Reaction ~ Days + (Days|Subject), sleepstudy, REML = FALSE)
+```
+
+## checking glmmTMB vs lmer
+## compare FE vcov
+all.equal(as.matrix(vcov(m1)), vcov(glmmtmb1)$cond, tolerance = 1e-4)
+## compare RE cov matrix
+all.equal(c(VarCorr(m1)$Subject), c(VarCorr(glmmtmb1)$cond$Subject), tol = 1e-4)
+
+all.equal(unname(glmmtmb1$fit$par),
+          ## reorder parameters, and double logsd
+          ##  (glmmTMB fits on the log-variance rather than the log-sd scale)
+          unname(c(tmbfit1$par[1:2],
+                   tmbfit1$par["logsd"]*2,
+                   tmbfit1$par[3:5])),
+          tolerance = 1e-6
+          )
+
+## try with BFGS
+## ?? clearly suboptimal fit (5 log-likelihood units worse than tmbfit1 ...)
+## would better starting values help??
+## don't know what's going on here.
+tmbfit2 <- with(obj, optim(par = par, fn = fn, gr = gr, method = "BFGS",
+                           control = list(maxit = 200)))
+
