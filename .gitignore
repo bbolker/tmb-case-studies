@@ -3,3 +3,7 @@
 *.dll
 *.html
 *.Rhistory
+
+\#*
+.#*
+*~
